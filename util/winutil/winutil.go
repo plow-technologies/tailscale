@@ -16,7 +16,10 @@ import (
 	"golang.org/x/sys/windows/registry"
 )
 
-const RegBase = `SOFTWARE\Tailscale IPN`
+const (
+	RegBase       = `SOFTWARE\Tailscale IPN`
+	regPolicyBase = `SOFTWARE\Policies\Tailscale`
+)
 
 // GetDesktopPID searches the PID of the process that's running the
 // currently active desktop and whether it was found.
@@ -30,27 +33,45 @@ func GetDesktopPID() (pid uint32, ok bool) {
 	return pid, pid != 0
 }
 
+// GetPolicyString looks up a registry value in our local machine's path for
+// system policies, or returns the given default if it can't.
+//
+// This function will only work on GOOS=windows. Trying to run it on any other
+// OS will always return the default value.
+func GetPolicyString(name, defval string) string {
+	s, err := getRegString(regPolicyBase, name)
+	if err != nil {
+		// Fall back to the legacy path for policies
+		return GetRegString(name, defval)
+	}
+	return s
+}
+
+// GetPolicyInteger looks up a registry value in our local machine's path for
+// system policies, or returns the given default if it can't.
+//
+// This function will only work on GOOS=windows. Trying to run it on any other
+// OS will always return the default value.
+func GetPolicyInteger(name string, defval uint64) uint64 {
+	i, err := getRegInt(regPolicyBase, name)
+	if err != nil {
+		// Fall back to the legacy path for policies
+		return GetRegInteger(name, defval)
+	}
+	return i
+}
+
 // GetRegString looks up a registry path in our local machine path, or returns
 // the given default if it can't.
 //
 // This function will only work on GOOS=windows. Trying to run it on any other
 // OS will always return the default value.
 func GetRegString(name, defval string) string {
-	key, err := registry.OpenKey(registry.LOCAL_MACHINE, RegBase, registry.READ)
+	s, err := getRegString(RegBase, name)
 	if err != nil {
-		log.Printf("registry.OpenKey(%v): %v", RegBase, err)
 		return defval
 	}
-	defer key.Close()
-
-	val, _, err := key.GetStringValue(name)
-	if err != nil {
-		if err != registry.ErrNotExist {
-			log.Printf("registry.GetStringValue(%v): %v", name, err)
-		}
-		return defval
-	}
-	return val
+	return s
 }
 
 // GetRegInteger looks up a registry path in our local machine path, or returns
@@ -59,21 +80,45 @@ func GetRegString(name, defval string) string {
 // This function will only work on GOOS=windows. Trying to run it on any other
 // OS will always return the default value.
 func GetRegInteger(name string, defval uint64) uint64 {
-	key, err := registry.OpenKey(registry.LOCAL_MACHINE, RegBase, registry.READ)
+	i, err := getRegInt(RegBase, name)
 	if err != nil {
-		log.Printf("registry.OpenKey(%v): %v", RegBase, err)
 		return defval
+	}
+	return i
+}
+
+func getRegString(subKey, valueName string) (string, error) {
+	key, err := registry.OpenKey(registry.LOCAL_MACHINE, subKey, registry.READ)
+	if err != nil {
+		log.Printf("registry.OpenKey(%v): %v", subKey, err)
+		return "", err
+	}
+	defer key.Close()
+
+	val, _, err := key.GetStringValue(name)
+	if err != nil {
+		if err != registry.ErrNotExist {
+			log.Printf("registry.GetStringValue(%v): %v", name, err)
+		}
+		return "", err
+	}
+	return val, nil
+}
+
+func getRegInt(subKey, valueName string) (uint64, error) {
+	key, err := registry.OpenKey(registry.LOCAL_MACHINE, subKey, registry.READ)
+	if err != nil {
+		log.Printf("registry.OpenKey(%v): %v", subKey, err)
+		return 0, err
 	}
 	defer key.Close()
 
 	val, _, err := key.GetIntegerValue(name)
 	if err != nil {
-		if err != registry.ErrNotExist {
-			log.Printf("registry.GetIntegerValue(%v): %v", name, err)
-		}
-		return defval
+		log.Printf("registry.GetIntegerValue(%v): %v", name, err)
+		return 0, err
 	}
-	return val
+	return val, nil
 }
 
 var (

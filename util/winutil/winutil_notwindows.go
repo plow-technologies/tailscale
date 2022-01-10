@@ -9,6 +9,20 @@ package winutil
 
 const RegBase = ``
 
+// GetPolicyString looks up a registry value in our local machine's path for
+// system policies, or returns the given default if it can't.
+//
+// This function will only work on GOOS=windows. Trying to run it on any other
+// OS will always return the default value.
+func GetPolicyString(name, defval string) string { return defval }
+
+// GetPolicyInteger looks up a registry value in our local machine's path for
+// system policies, or returns the given default if it can't.
+//
+// This function will only work on GOOS=windows. Trying to run it on any other
+// OS will always return the default value.
+func GetPolicyInteger(name string, defval uint64) uint64 { return defval }
+
 // GetRegString looks up a registry path in our local machine path, or returns
 // the given default if it can't.
 //
