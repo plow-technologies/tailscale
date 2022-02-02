@@ -33,10 +33,6 @@ type Status struct {
 	//  "Starting", "Running".
 	BackendState string
 
-	// TailnetName is the name of the network that's currently in
-	// use.
-	TailnetName string
-
 	AuthURL      string       // current URL provided by control to authorize client
 	TailscaleIPs []netaddr.IP // Tailscale IP(s) assigned to this node
 	Self         *PeerStatus
@@ -51,7 +47,10 @@ type Status struct {
 	// There are no surrounding dots.
 	// MagicDNSSuffix should be populated regardless of whether a domain
 	// has MagicDNS enabled.
+	// This field is duplicated into Tailnet.MagicDNSSuffix.
 	MagicDNSSuffix string
+
+	Tailnet TailnetStatus
 
 	// CertDomains are the set of DNS names for which the control
 	// plane server will assist with provisioning TLS
@@ -62,6 +61,26 @@ type Status struct {
 
 	Peer map[key.NodePublic]*PeerStatus
 	User map[tailcfg.UserID]tailcfg.UserProfile
+}
+
+// TailnetStatus is a subset of status information related to the
+// current tailnet.
+type TailnetStatus struct {
+	// TailnetName is the name of the network that's currently in
+	// use.
+	Name string
+
+	// MagicDNSSuffix is the network's MagicDNS suffix for nodes
+	// in the network such as "userfoo.tailscale.net".
+	// There are no surrounding dots.
+	// MagicDNSSuffix should be populated regardless of whether a domain
+	// has MagicDNS enabled.
+	MagicDNSSuffix string
+
+	// MagicDNSEnabled is whether or not the network has MagicDNS enabled.
+	// Note that the current device may still not support MagicDNS if
+	// `--accept-dns=false` was used.
+	MagicDNSEnabled bool
 }
 
 func (s *Status) Peers() []key.NodePublic {

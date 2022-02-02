@@ -380,8 +380,10 @@ func (b *LocalBackend) updateStatus(sb *ipnstate.StatusBuilder, extraLocked func
 		}
 		if b.netMap != nil {
 			s.MagicDNSSuffix = b.netMap.MagicDNSSuffix()
+			s.Tailnet.MagicDNSSuffix = b.netMap.MagicDNSSuffix()
+			s.Tailnet.MagicDNSEnabled = b.netMap.DNS.Proxied
 			s.CertDomains = append([]string(nil), b.netMap.DNS.CertDomains...)
-			s.TailnetName = b.netMap.Domain
+			s.Tailnet.Name = b.netMap.Domain
 		}
 	})
 	sb.MutateSelfStatus(func(ss *ipnstate.PeerStatus) {
