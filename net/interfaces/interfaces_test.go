@@ -13,7 +13,7 @@ import (
 )
 
 func TestGetState(t *testing.T) {
-        t.skip("test fails for Plow Build")
+        t.Skip("test fails for Plow Build")
 	st, err := GetState()
 	if err != nil {
 		t.Fatal(err)
